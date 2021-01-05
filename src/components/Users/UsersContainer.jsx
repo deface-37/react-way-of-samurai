@@ -1,70 +1,54 @@
-import React from 'react';
-import {connect} from 'react-redux';
-import {
-    follow,
-    setCurrentPage,
-    setUsers,
-    setTotalUsersCount,
-    toggleIsFetching,
-    unfollow, toggleFollowingProgress
-} from '../../redux/users-reducer';
-import * as axios from 'axios';
-import Users from './Users';
-import Preloader from "../common/Preloader/Preloader";
-import {usersAPI} from "../../api/api";
-
-
+import React from 'react'
+import Users from "./Users";
+import { connect } from "react-redux";
+import { follow, setUsers, unfollow, setTotalCount, setCurrentPage, setIsLoading, toggleIsFollowing } from "../../redux/users-reducer";
+import Pages from './Pages';
+import Preloader from '../common/Preloader';
+import { usersAPI } from './../../api/api';
 
 class UsersContainer extends React.Component {
-    componentDidMount() {
-        this.props.toggleIsFetching(true);
+  componentDidMount() {
+    this.props.setIsLoading(true)
 
-        usersAPI.getUsers(this.props.currentPage, this.props.pageSize).then(data => {
+    usersAPI.getUsers(this.props.pagesInfo.currentPage, this.props.parameters.usersPerPage)
+      .then(data => {
+        this.props.setUsers(data.items);
+        this.props.setTotalCount(data.totalCount)
+        this.props.setIsLoading(false)
+      });
+  }
 
-                this.props.toggleIsFetching(false);
-                this.props.setUsers(data.items);
-                this.props.setTotalUsersCount(data.totalCount);
-            });
-    }
+  render() {
+    return <>
+    {this.props.isLoading ? <Preloader/> : <></>}
+    <Pages pagesInfo = {this.props.pagesInfo}
+      parameters = {this.props.parameters}
+      setCurrentPage = {this.props.setCurrentPage}
+      reloadUsers = {this.componentDidMount.bind(this)}
+    />
+    <Users users={this.props.users}
+      isFollowing={this.props.isFollowing}
+      unfollow={this.props.unfollow}
+      follow={this.props.follow}
+      toggleIsFollowing={this.props.toggleIsFollowing}
+    />
+    </>
+  }
 
-    onPageChanged = (pageNumber) => {
-        this.props.setCurrentPage(pageNumber);
-        this.props.toggleIsFetching(true);
-
-        usersAPI.getUsers(pageNumber, this.props.pageSize)
-            .then(data => {
-                this.props.toggleIsFetching(false);
-                this.props.setUsers(data.items);
-            });
-    }
-
-    render() {
-        return <>
-            { this.props.isFetching ? <Preloader /> : null }
-            <Users totalUsersCount={this.props.totalUsersCount}
-                        pageSize={this.props.pageSize}
-                        currentPage={this.props.currentPage}
-                        onPageChanged={this.onPageChanged}
-                        users={this.props.users}
-                        follow={this.props.follow}
-                        unfollow={this.props.unfollow}
-                        toggleFollowingProgress={this.props.toggleFollowingProgress}
-                        followingInProgress={this.props.followingInProgress}
-             />
-        </>
-    }
 }
 
-let mapStateToProps = (state) => {
-    return {
-        users: state.usersPage.users,
-        pageSize: state.usersPage.pageSize,
-        totalUsersCount: state.usersPage.totalUsersCount,
-        currentPage: state.usersPage.currentPage,
-        isFetching: state.usersPage.isFetching,
-        followingInProgress: state.usersPage.followingInProgress
-    }
+const mapStateToProps = (state) => {
+  return {
+    users: state.usersPage.users,
+    pagesInfo: state.usersPage.pagesInfo,
+    parameters: state.usersPage.parameters,
+    isLoading: state.usersPage.isLoading,
+    isFollowing: state.usersPage.isFollowing
+  }
 }
 
-export default connect(mapStateToProps,
-    {follow, unfollow, setUsers, setCurrentPage, setTotalUsersCount, toggleIsFetching, toggleFollowingProgress})(UsersContainer);
+const mapDispatchToProps = {
+  follow, unfollow, setUsers, setTotalCount, setCurrentPage, setIsLoading, toggleIsFollowing
+}
+
+export default connect(mapStateToProps, mapDispatchToProps)(UsersContainer);

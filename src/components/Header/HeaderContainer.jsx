@@ -1,29 +1,34 @@
-import React from 'react';
-import Header from "./Header";
-import * as axios from "axios";
-import {connect} from "react-redux";
-import {setAuthUserData} from "../../redux/auth-reducer";
+import React, { Component } from 'react'
+import { connect } from 'react-redux'
+import { setUserData } from '../../redux/auth-reducer'
+import Header from './Header'
+import { authAPI, profileAPI } from './../../api/api';
 
-class HeaderContainer extends React.Component {
-    componentDidMount() {
-        axios.get(`https://social-network.samuraijs.com/api/1.0/auth/me`, {
-            withCredentials: true
-        })
-            .then(response => {
-                if (response.data.resultCode === 0) {
-                    let {id, login, email} = response.data.data;
-                    this.props.setAuthUserData(id, email, login);
-                }
-            });
-    }
-
-    render() {
-        return <Header {...this.props} />
-    }
+export class HeaderContainer extends Component {
+  componentDidMount() {
+    authAPI.authMe()
+      .then(data => {
+        if (data.resultCode === 0) {
+          const {id, email, login} = data.data
+          this.props.setUserData(login, email, id)
+          return id
+        }
+      })
+      .then(id => {
+        return profileAPI.getProfile(id)
+      })
+  }
+  
+  render() {
+    return (
+      <Header isAuth={this.props.isUserAuth} login={this.props.login} />
+    )
+  }
 }
-const mapStateToProps = (state) => ({
-    isAuth: state.auth.isAuth,
-    login: state.auth.login,
-});
 
-export default connect(mapStateToProps, {setAuthUserData})(HeaderContainer);
+const mapDispatchToProps = (state) => ({
+  isUserAuth: state.auth.isAuth,
+  login: state.auth.login
+})
+
+export default connect(mapDispatchToProps, {setUserData})(HeaderContainer)
